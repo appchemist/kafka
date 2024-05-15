@@ -1574,6 +1574,7 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
             wakeupTrigger.clearTask();
         }
 
+        metadata.maybeThrowAnyException();
         return collectFetch();
     }
 
