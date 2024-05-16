@@ -593,6 +593,15 @@ public class Metadata implements Closeable {
     }
 
     /**
+     * If any non-retriable exceptions were encountered during metadata update, clear and return the exception.
+     * This is used by the consumer to propagate any fatal exceptions or topic exceptions for any of the topics
+     * in the consumer's Metadata.
+     */
+    public synchronized KafkaException maybeGetAnyException() {
+        return clearErrorsAndMaybeGetException(this::recoverableException);
+    }
+
+    /**
      * If any non-retriable exceptions were encountered during metadata update, clear and throw the exception.
      * This is used by the consumer to propagate any fatal exceptions or topic exceptions for any of the topics
      * in the consumer's Metadata.
@@ -624,11 +633,16 @@ public class Metadata implements Closeable {
     }
 
     private void clearErrorsAndMaybeThrowException(Supplier<KafkaException> recoverableExceptionSupplier) {
+        KafkaException metadataException = clearErrorsAndMaybeGetException(recoverableExceptionSupplier);
+        if (metadataException != null)
+            throw metadataException;
+    }
+
+    private KafkaException clearErrorsAndMaybeGetException(Supplier<KafkaException> recoverableExceptionSupplier) {
         KafkaException metadataException = Optional.ofNullable(fatalException).orElseGet(recoverableExceptionSupplier);
         fatalException = null;
         clearRecoverableErrors();
-        if (metadataException != null)
-            throw metadataException;
+        return metadataException;
     }
 
     // We may be able to recover from this exception if metadata for this topic is no longer needed

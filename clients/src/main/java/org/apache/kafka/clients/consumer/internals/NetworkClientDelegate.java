@@ -24,6 +24,7 @@ import org.apache.kafka.clients.KafkaClient;
 import org.apache.kafka.clients.NetworkClientUtils;
 import org.apache.kafka.clients.RequestCompletionHandler;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.internals.events.BackgroundEventHandler;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.DisconnectException;
@@ -371,6 +372,7 @@ public class NetworkClientDelegate implements AutoCloseable {
                                                            final ApiVersions apiVersions,
                                                            final Metrics metrics,
                                                            final FetchMetricsManager fetchMetricsManager,
+                                                           final BackgroundEventHandler backgroundEventHandler,
                                                            final ClientTelemetrySender clientTelemetrySender) {
         return new CachedSupplier<NetworkClientDelegate>() {
             @Override
@@ -384,7 +386,8 @@ public class NetworkClientDelegate implements AutoCloseable {
                         CONSUMER_MAX_INFLIGHT_REQUESTS_PER_CONNECTION,
                         metadata,
                         fetchMetricsManager.throttleTimeSensor(),
-                        clientTelemetrySender);
+                        clientTelemetrySender,
+                        m -> new MetadataUpdaterProxy(m, metadata, backgroundEventHandler));
                 return new NetworkClientDelegate(time, config, logContext, client);
             }
         };

@@ -40,6 +40,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.common.utils.Utils.closeQuietly;
@@ -172,7 +173,37 @@ public final class ClientUtils {
                 null,
                 new DefaultHostResolver(),
                 throttleTimeSensor,
-                clientTelemetrySender);
+                clientTelemetrySender,
+                Function.identity());
+    }
+
+    public static NetworkClient createNetworkClient(AbstractConfig config,
+                                                    Metrics metrics,
+                                                    String metricsGroupPrefix,
+                                                    LogContext logContext,
+                                                    ApiVersions apiVersions,
+                                                    Time time,
+                                                    int maxInFlightRequestsPerConnection,
+                                                    Metadata metadata,
+                                                    Sensor throttleTimeSensor,
+                                                    ClientTelemetrySender clientTelemetrySender,
+                                                    Function<MetadataUpdater, MetadataUpdater> metadataUpdaterFunction
+    ) {
+        return createNetworkClient(config,
+                config.getString(CommonClientConfigs.CLIENT_ID_CONFIG),
+                metrics,
+                metricsGroupPrefix,
+                logContext,
+                apiVersions,
+                time,
+                maxInFlightRequestsPerConnection,
+                config.getInt(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG),
+                metadata,
+                null,
+                new DefaultHostResolver(),
+                throttleTimeSensor,
+                clientTelemetrySender,
+                metadataUpdaterFunction);
     }
 
     public static NetworkClient createNetworkClient(AbstractConfig config,
@@ -199,7 +230,8 @@ public final class ClientUtils {
                 metadataUpdater,
                 hostResolver,
                 null,
-                null);
+                null,
+                Function.identity());
     }
 
     public static NetworkClient createNetworkClient(AbstractConfig config,
@@ -215,7 +247,8 @@ public final class ClientUtils {
                                                     MetadataUpdater metadataUpdater,
                                                     HostResolver hostResolver,
                                                     Sensor throttleTimeSensor,
-                                                    ClientTelemetrySender clientTelemetrySender) {
+                                                    ClientTelemetrySender clientTelemetrySender,
+                                                    Function<MetadataUpdater, MetadataUpdater> metadataUpdaterFunction) {
         ChannelBuilder channelBuilder = null;
         Selector selector = null;
 
@@ -245,7 +278,8 @@ public final class ClientUtils {
                     throttleTimeSensor,
                     logContext,
                     hostResolver,
-                    clientTelemetrySender);
+                    clientTelemetrySender,
+                    metadataUpdaterFunction);
         } catch (Throwable t) {
             closeQuietly(selector, "Selector");
             closeQuietly(channelBuilder, "ChannelBuilder");

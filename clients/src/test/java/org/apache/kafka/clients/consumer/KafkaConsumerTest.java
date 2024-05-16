@@ -2952,7 +2952,7 @@ public class KafkaConsumerTest {
     // TODO: this test requires rebalance logic which is not yet implemented in the CONSUMER group protocol.
     //       Once it is implemented, this should use both group protocols.
     @ParameterizedTest
-    @EnumSource(value = GroupProtocol.class)
+    @EnumSource(value = GroupProtocol.class, names = "CLASSIC")
     public void testSubscriptionOnInvalidTopic(GroupProtocol groupProtocol) {
         ConsumerMetadata metadata = createMetadata(subscription);
         MockClient client = new MockClient(time, metadata);
@@ -2974,7 +2974,7 @@ public class KafkaConsumerTest {
         KafkaConsumer<String, String> consumer = newConsumer(groupProtocol, time, client, subscription, metadata, assignor, true, groupInstanceId);
         consumer.subscribe(singleton(invalidTopicName), getConsumerRebalanceListener(consumer));
 
-        assertThrows(InvalidTopicException.class, () -> consumer.poll(Duration.ofMillis(100)));
+        assertThrows(InvalidTopicException.class, () -> consumer.poll(Duration.ZERO));
     }
 
     @ParameterizedTest
