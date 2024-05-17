@@ -29,53 +29,51 @@ import org.apache.kafka.common.requests.RequestHeader;
 import java.util.List;
 import java.util.Optional;
 
-public class MetadataUpdaterProxy implements MetadataUpdater {
-    private final MetadataUpdater updater;
+public class ErrorPropagateMetadataUpdater implements MetadataUpdater {
+    private final MetadataUpdater metadataUpdater;
     private final Metadata metadata;
     private final BackgroundEventHandler backgroundEventHandler;
 
-    public MetadataUpdaterProxy(MetadataUpdater updater, Metadata metadata, BackgroundEventHandler backgroundEventHandler) {
-        this.updater = updater;
+    public ErrorPropagateMetadataUpdater(MetadataUpdater metadataUpdater, Metadata metadata, BackgroundEventHandler backgroundEventHandler) {
+        this.metadataUpdater = metadataUpdater;
         this.metadata = metadata;
         this.backgroundEventHandler = backgroundEventHandler;
     }
 
     @Override
     public List<Node> fetchNodes() {
-        return updater.fetchNodes();
+        return metadataUpdater.fetchNodes();
     }
 
     @Override
     public boolean isUpdateDue(long now) {
-        return updater.isUpdateDue(now);
+        return metadataUpdater.isUpdateDue(now);
     }
 
     @Override
     public long maybeUpdate(long now) {
-        return updater.maybeUpdate(now);
+        return metadataUpdater.maybeUpdate(now);
     }
 
     @Override
     public void handleServerDisconnect(long now, String destinationId, Optional<AuthenticationException> maybeFatalException) {
-        updater.handleServerDisconnect(now, destinationId, maybeFatalException);
-        KafkaException metadataException = metadata.maybeGetAnyException();
-        if (metadataException != null) {
-            backgroundEventHandler.add(new ErrorEvent(metadataException));
-        }
+        metadataUpdater.handleServerDisconnect(now, destinationId, maybeFatalException);
+        propagateError();
     }
 
     @Override
     public void handleFailedRequest(long now, Optional<KafkaException> maybeFatalException) {
-        updater.handleFailedRequest(now, maybeFatalException);
-        KafkaException metadataException = metadata.maybeGetAnyException();
-        if (metadataException != null) {
-            backgroundEventHandler.add(new ErrorEvent(metadataException));
-        }
+        metadataUpdater.handleFailedRequest(now, maybeFatalException);
+        propagateError();
     }
 
     @Override
     public void handleSuccessfulResponse(RequestHeader requestHeader, long now, MetadataResponse response) {
-        updater.handleSuccessfulResponse(requestHeader, now, response);
+        metadataUpdater.handleSuccessfulResponse(requestHeader, now, response);
+        propagateError();
+    }
+
+    private void propagateError() {
         KafkaException metadataException = metadata.maybeGetAnyException();
         if (metadataException != null) {
             backgroundEventHandler.add(new ErrorEvent(metadataException));
@@ -84,6 +82,6 @@ public class MetadataUpdaterProxy implements MetadataUpdater {
 
     @Override
     public void close() {
-        updater.close();
+        metadataUpdater.close();
     }
 }

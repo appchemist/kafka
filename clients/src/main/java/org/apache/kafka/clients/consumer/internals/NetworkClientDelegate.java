@@ -387,9 +387,10 @@ public class NetworkClientDelegate implements AutoCloseable {
                         metadata,
                         fetchMetricsManager.throttleTimeSensor(),
                         clientTelemetrySender,
-                        m -> new MetadataUpdaterProxy(m, metadata, backgroundEventHandler));
+                        metadataUpdater -> new ErrorPropagateMetadataUpdater(metadataUpdater, metadata, backgroundEventHandler));
                 return new NetworkClientDelegate(time, config, logContext, client);
             }
         };
     }
+
 }
