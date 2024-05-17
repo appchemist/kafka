@@ -35,6 +35,10 @@ public class ErrorPropagateMetadataUpdater implements MetadataUpdater {
     private final BackgroundEventHandler backgroundEventHandler;
 
     public ErrorPropagateMetadataUpdater(MetadataUpdater metadataUpdater, Metadata metadata, BackgroundEventHandler backgroundEventHandler) {
+        assert metadataUpdater != null;
+        assert metadata != null;
+        assert backgroundEventHandler != null;
+
         this.metadataUpdater = metadataUpdater;
         this.metadata = metadata;
         this.backgroundEventHandler = backgroundEventHandler;
