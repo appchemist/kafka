@@ -52,7 +52,7 @@ public class ErrorPropagateMetadataUpdaterTest {
         metadataUpdater = new ErrorPropagateMetadataUpdater(
                 new ManualMetadataUpdater(),
                 metadata,
-                new BackgroundEventHandler(new LogContext(), backgroundEventQueue));
+                new BackgroundEventHandler(backgroundEventQueue));
     }
 
     @Test
