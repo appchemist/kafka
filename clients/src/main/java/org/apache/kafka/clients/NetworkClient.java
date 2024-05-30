@@ -65,7 +65,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -201,8 +200,7 @@ public class NetworkClient implements KafkaClient {
              throttleTimeSensor,
              logContext,
              new DefaultHostResolver(),
-             null,
-                Function.identity());
+             null);
     }
 
     public NetworkClient(Selectable selector,
@@ -238,8 +236,7 @@ public class NetworkClient implements KafkaClient {
              null,
              logContext,
              new DefaultHostResolver(),
-             null,
-                Function.identity());
+             null);
     }
 
     public NetworkClient(MetadataUpdater metadataUpdater,
@@ -261,48 +258,6 @@ public class NetworkClient implements KafkaClient {
                          LogContext logContext,
                          HostResolver hostResolver,
                          ClientTelemetrySender clientTelemetrySender) {
-        this(metadataUpdater,
-                metadata,
-                selector,
-                clientId,
-                maxInFlightRequestsPerConnection,
-                reconnectBackoffMs,
-                reconnectBackoffMax,
-                socketSendBuffer,
-                socketReceiveBuffer,
-                defaultRequestTimeoutMs,
-                connectionSetupTimeoutMs,
-                connectionSetupTimeoutMaxMs,
-                time,
-                discoverBrokerVersions,
-                apiVersions,
-                throttleTimeSensor,
-                logContext,
-                hostResolver,
-                clientTelemetrySender,
-                Function.identity());
-    }
-    
-    public NetworkClient(MetadataUpdater metadataUpdater,
-                         Metadata metadata,
-                         Selectable selector,
-                         String clientId,
-                         int maxInFlightRequestsPerConnection,
-                         long reconnectBackoffMs,
-                         long reconnectBackoffMax,
-                         int socketSendBuffer,
-                         int socketReceiveBuffer,
-                         int defaultRequestTimeoutMs,
-                         long connectionSetupTimeoutMs,
-                         long connectionSetupTimeoutMaxMs,
-                         Time time,
-                         boolean discoverBrokerVersions,
-                         ApiVersions apiVersions,
-                         Sensor throttleTimeSensor,
-                         LogContext logContext,
-                         HostResolver hostResolver,
-                         ClientTelemetrySender clientTelemetrySender,
-                         Function<MetadataUpdater, MetadataUpdater> metadataUpdaterFunction) {
         /* It would be better if we could pass `DefaultMetadataUpdater` from the public constructor, but it's not
          * possible because `DefaultMetadataUpdater` is an inner class and it can only be instantiated after the
          * super constructor is invoked.
@@ -310,10 +265,10 @@ public class NetworkClient implements KafkaClient {
         if (metadataUpdater == null) {
             if (metadata == null)
                 throw new IllegalArgumentException("`metadata` must not be null");
-            metadataUpdater = new DefaultMetadataUpdater(metadata);
+            this.metadataUpdater = new DefaultMetadataUpdater(metadata);
+        } else {
+            this.metadataUpdater = metadataUpdater;
         }
-
-        this.metadataUpdater = metadataUpdaterFunction.apply(metadataUpdater);
         this.selector = selector;
         this.clientId = clientId;
         this.inFlightRequests = new InFlightRequests(maxInFlightRequestsPerConnection);
