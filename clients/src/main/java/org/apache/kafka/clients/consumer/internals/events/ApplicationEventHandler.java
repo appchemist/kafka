@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.clients.consumer.internals.events;
 
+import org.apache.kafka.clients.Metadata;
 import org.apache.kafka.clients.consumer.internals.ConsumerNetworkThread;
 import org.apache.kafka.clients.consumer.internals.ConsumerUtils;
 import org.apache.kafka.clients.consumer.internals.NetworkClientDelegate;
@@ -46,8 +47,10 @@ public class ApplicationEventHandler implements Closeable {
 
     public ApplicationEventHandler(final LogContext logContext,
                                    final Time time,
+                                   final Metadata metadata,
                                    final BlockingQueue<ApplicationEvent> applicationEventQueue,
                                    final CompletableEventReaper applicationEventReaper,
+                                   final BackgroundEventHandler backgroundEventHandler,
                                    final Supplier<ApplicationEventProcessor> applicationEventProcessorSupplier,
                                    final Supplier<NetworkClientDelegate> networkClientDelegateSupplier,
                                    final Supplier<RequestManagers> requestManagersSupplier) {
@@ -55,8 +58,10 @@ public class ApplicationEventHandler implements Closeable {
         this.applicationEventQueue = applicationEventQueue;
         this.networkThread = new ConsumerNetworkThread(logContext,
                 time,
+                metadata,
                 applicationEventQueue,
                 applicationEventReaper,
+                backgroundEventHandler,
                 applicationEventProcessorSupplier,
                 networkClientDelegateSupplier,
                 requestManagersSupplier);

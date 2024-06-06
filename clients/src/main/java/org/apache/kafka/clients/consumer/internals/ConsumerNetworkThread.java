@@ -17,11 +17,14 @@
 package org.apache.kafka.clients.consumer.internals;
 
 import org.apache.kafka.clients.KafkaClient;
+import org.apache.kafka.clients.Metadata;
 import org.apache.kafka.clients.consumer.internals.events.ApplicationEvent;
 import org.apache.kafka.clients.consumer.internals.events.ApplicationEventProcessor;
 import org.apache.kafka.clients.consumer.internals.events.BackgroundEvent;
+import org.apache.kafka.clients.consumer.internals.events.BackgroundEventHandler;
 import org.apache.kafka.clients.consumer.internals.events.CompletableEvent;
 import org.apache.kafka.clients.consumer.internals.events.CompletableEventReaper;
+import org.apache.kafka.clients.consumer.internals.events.ErrorEvent;
 import org.apache.kafka.common.internals.IdempotentCloser;
 import org.apache.kafka.common.requests.AbstractRequest;
 import org.apache.kafka.common.utils.KafkaThread;
@@ -54,6 +57,8 @@ public class ConsumerNetworkThread extends KafkaThread implements Closeable {
     private static final String BACKGROUND_THREAD_NAME = "consumer_background_thread";
     private final Time time;
     private final Logger log;
+    private final Metadata metadata;
+    private final BackgroundEventHandler backgroundEventHandler;
     private final BlockingQueue<ApplicationEvent> applicationEventQueue;
     private final CompletableEventReaper applicationEventReaper;
     private final Supplier<ApplicationEventProcessor> applicationEventProcessorSupplier;
@@ -69,16 +74,20 @@ public class ConsumerNetworkThread extends KafkaThread implements Closeable {
 
     public ConsumerNetworkThread(LogContext logContext,
                                  Time time,
+                                 Metadata metadata,
                                  BlockingQueue<ApplicationEvent> applicationEventQueue,
                                  CompletableEventReaper applicationEventReaper,
+                                 BackgroundEventHandler backgroundEventHandler,
                                  Supplier<ApplicationEventProcessor> applicationEventProcessorSupplier,
                                  Supplier<NetworkClientDelegate> networkClientDelegateSupplier,
                                  Supplier<RequestManagers> requestManagersSupplier) {
         super(BACKGROUND_THREAD_NAME, true);
         this.time = time;
         this.log = logContext.logger(getClass());
+        this.metadata = metadata;
         this.applicationEventQueue = applicationEventQueue;
         this.applicationEventReaper = applicationEventReaper;
+        this.backgroundEventHandler = backgroundEventHandler;
         this.applicationEventProcessorSupplier = applicationEventProcessorSupplier;
         this.networkClientDelegateSupplier = networkClientDelegateSupplier;
         this.requestManagersSupplier = requestManagersSupplier;
@@ -145,6 +154,7 @@ public class ConsumerNetworkThread extends KafkaThread implements Closeable {
                 .map(networkClientDelegate::addAll)
                 .reduce(MAX_POLL_TIMEOUT_MS, Math::min);
         networkClientDelegate.poll(pollWaitTimeMs, currentTimeMs);
+        maybePropagateMetadataError();
 
         cachedMaximumTimeToWait = requestManagers.entries().stream()
                 .filter(Optional::isPresent)
@@ -171,6 +181,17 @@ public class ConsumerNetworkThread extends KafkaThread implements Closeable {
             } catch (Throwable t) {
                 log.warn("Error processing event {}", t.getMessage(), t);
             }
+        }
+    }
+
+    /**
+     * Propagate the metadata error from the background thread to the application thread
+     */
+    private void maybePropagateMetadataError() {
+        try {
+            metadata.maybeThrowAnyException();
+        } catch (Exception e) {
+            backgroundEventHandler.add(new ErrorEvent(e));
         }
     }
 

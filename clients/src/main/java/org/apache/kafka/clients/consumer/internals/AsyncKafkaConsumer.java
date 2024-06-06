@@ -355,8 +355,10 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
             this.applicationEventHandler = applicationEventHandlerFactory.build(
                     logContext,
                     time,
+                    metadata,
                     applicationEventQueue,
                     new CompletableEventReaper(logContext),
+                    backgroundEventHandler,
                     applicationEventProcessorSupplier,
                     networkClientDelegateSupplier,
                     requestManagersSupplier);
@@ -528,8 +530,10 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
         );
         this.applicationEventHandler = new ApplicationEventHandler(logContext,
                 time,
+                metadata,
                 applicationEventQueue,
                 new CompletableEventReaper(logContext),
+                backgroundEventHandler,
                 applicationEventProcessorSupplier,
                 networkClientDelegateSupplier,
                 requestManagersSupplier);
@@ -543,8 +547,10 @@ public class AsyncKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
         ApplicationEventHandler build(
             final LogContext logContext,
             final Time time,
+            final Metadata metadata,
             final BlockingQueue<ApplicationEvent> applicationEventQueue,
             final CompletableEventReaper applicationEventReaper,
+            final BackgroundEventHandler backgroundEventHandler,
             final Supplier<ApplicationEventProcessor> applicationEventProcessorSupplier,
             final Supplier<NetworkClientDelegate> networkClientDelegateSupplier,
             final Supplier<RequestManagers> requestManagersSupplier
